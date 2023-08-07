@@ -73,7 +73,7 @@ trait SpanStarter {
         if (!$this->spanTagManager->exist($tagName)) {
             return;
         }
-        $callback = $this->spanTagManager->get($tagName);
+        $callback = $this->spanTagManager->getTagCallback($tagName);
         if (is_callable($callback)) {
             $callback($span, $extra);
         }

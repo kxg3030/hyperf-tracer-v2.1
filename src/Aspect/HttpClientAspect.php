@@ -63,7 +63,6 @@ class HttpClientAspect implements AroundInterface
      */
     public function process(ProceedingJoinPoint $proceedingJoinPoint)
     {
-
         if ($this->switchManager->isEnable('guzzle') === false) {
             return $proceedingJoinPoint->process();
         }

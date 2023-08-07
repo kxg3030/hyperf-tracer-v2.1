@@ -20,27 +20,10 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class SpanTagManager {
-    // TODO: The properties will be changed to standard version in v1.2.
-    private $tags = [
-        'http_client' => [
-            'http.status_code' => 'status',
-        ],
-        'redis'       => [
-            'arguments' => 'arguments',
-            'result'    => 'result',
-        ],
-        'db'          => [
-            'db.query'      => 'db.query',
-            'db.statement'  => 'db.sql',
-            'db.query_time' => 'db.query_time',
-        ],
-        'rpc'         => [
-            'path'   => 'rpc.path',
-            'status' => 'rpc.status',
-        ],
-    ];
+    private $tags = [];
 
     public function apply(array $tags): void {
+        $this->init();
         $this->tags = array_replace_recursive($this->tags, $tags);
     }
 
@@ -54,6 +37,10 @@ class SpanTagManager {
 
     public function exist(string $type): bool {
         return isset($this->tags[$type]);
+    }
+
+    public function getTagCallback(string $type): callable {
+        return $this->tags[$type];
     }
 
     private function init() {
