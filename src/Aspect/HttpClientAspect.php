@@ -63,6 +63,7 @@ class HttpClientAspect implements AroundInterface
      */
     public function process(ProceedingJoinPoint $proceedingJoinPoint)
     {
+
         if ($this->switchManager->isEnable('guzzle') === false) {
             return $proceedingJoinPoint->process();
         }
@@ -71,34 +72,21 @@ class HttpClientAspect implements AroundInterface
             return $proceedingJoinPoint->process();
         }
         $arguments = $proceedingJoinPoint->arguments;
-        $method = $arguments['keys']['method'] ?? 'Null';
-        $uri = $arguments['keys']['uri'] ?? 'Null';
-        $key = "HTTP Request [{$method}] {$uri}";
-        $span = $this->startSpan($key);
+        $uri       = $arguments['keys']['uri'] ?? 'null';
+        $span      = $this->startSpan($uri);
         $span->setTag('source', $proceedingJoinPoint->className . '::' . $proceedingJoinPoint->methodName);
-        if ($this->spanTagManager->has('http_client', 'http.url')) {
-            $span->setTag($this->spanTagManager->get('http_client', 'http.url'), $uri);
-        }
-        if ($this->spanTagManager->has('http_client', 'http.method')) {
-            $span->setTag($this->spanTagManager->get('http_client', 'http.method'), $method);
-        }
+        $this->record("http_client", $arguments,$span);
         $appendHeaders = [];
-        // Injects the context into the wire
-        $this->tracer->inject(
-            $span->getContext(),
-            TEXT_MAP,
-            $appendHeaders
-        );
-        $options['headers'] = array_replace($options['headers'] ?? [], $appendHeaders);
+        $this->tracer->inject($span->getContext(), TEXT_MAP, $appendHeaders);
+        $options['headers']                                = array_replace($options['headers'] ?? [], $appendHeaders);
         $proceedingJoinPoint->arguments['keys']['options'] = $options;
-
         try {
             $result = $proceedingJoinPoint->process();
             if ($result instanceof ResponseInterface) {
-                $span->setTag($this->spanTagManager->get('http_client', 'http.status_code'), $result->getStatusCode());
+                $span->setTag("http.status", $result->getStatusCode());
             }
         } catch (\Throwable $e) {
-            $span->setTag('error', true);
+            $span->setTag('exception', true);
             $span->log(['message', $e->getMessage(), 'code' => $e->getCode(), 'stacktrace' => $e->getTraceAsString()]);
             throw $e;
         } finally {

@@ -70,15 +70,14 @@ class RedisAspect implements AroundInterface
         if ($this->switchManager->isEnable('redis') === false) {
             return $proceedingJoinPoint->process();
         }
-
         $arguments = $proceedingJoinPoint->arguments['keys'];
-        $span = $this->startSpan('Redis' . '::' . $arguments['name']);
-        $span->setTag($this->spanTagManager->get('redis', 'arguments'), json_encode($arguments['arguments']));
+        $span      = $this->startSpan('redis' . '.' . $arguments['name']);
+        $this->record("redis", $arguments, $span);
         try {
             $result = $proceedingJoinPoint->process();
-            $span->setTag($this->spanTagManager->get('redis', 'result'), json_encode($result));
+            $span->setTag("redis.result", json_encode($result, JSON_UNESCAPED_UNICODE));
         } catch (\Throwable $e) {
-            $span->setTag('error', true);
+            $span->setTag('exception', true);
             $span->log(['message', $e->getMessage(), 'code' => $e->getCode(), 'stacktrace' => $e->getTraceAsString()]);
             throw $e;
         } finally {

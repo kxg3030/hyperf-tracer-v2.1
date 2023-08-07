@@ -67,4 +67,19 @@ trait SpanStarter
         $child->setTag(SPAN_KIND, $kind);
         return $child;
     }
+
+    /**
+     * @param string $tagName
+     * @param mixed $extra
+     * @param Span $span
+     */
+    public function record(string $tagName, $extra, Span $span) {
+        if (!$this->spanTagManager->exist($tagName)) {
+            return;
+        }
+        $callback = $this->spanTagManager->get($tagName);
+        if (is_callable($callback)) {
+            $callback($span, $extra);
+        }
+    }
 }
