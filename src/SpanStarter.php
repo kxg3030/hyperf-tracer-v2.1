@@ -9,6 +9,7 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Hyperf\Tracer;
 
 use Hyperf\Rpc;
@@ -20,22 +21,17 @@ use const OpenTracing\Formats\TEXT_MAP;
 use const OpenTracing\Tags\SPAN_KIND;
 use const OpenTracing\Tags\SPAN_KIND_RPC_SERVER;
 
-trait SpanStarter
-{
+trait SpanStarter {
     /**
      * Helper method to start a span while setting context.
      */
-    protected function startSpan(
-        string $name,
-        array $option = [],
-        string $kind = SPAN_KIND_RPC_SERVER
-    ): Span {
+    protected function startSpan(string $name, array $option = [], string $kind = SPAN_KIND_RPC_SERVER): Span {
         $root = Context::get('tracer.root');
-        if (! $root instanceof Span) {
+        if (!$root instanceof Span) {
             $container = ApplicationContext::getContainer();
             /** @var ServerRequestInterface $request */
             $request = Context::get(ServerRequestInterface::class);
-            if (! $request instanceof ServerRequestInterface) {
+            if (!$request instanceof ServerRequestInterface) {
                 // If the request object is absent, we are probably in a commandline context.
                 // Throwing an exception is unnecessary.
                 $root = $this->tracer->startSpan($name, $option);
@@ -48,7 +44,7 @@ trait SpanStarter
             }, $request->getHeaders());
             if ($container->has(Rpc\Context::class) && $rpcContext = $container->get(Rpc\Context::class)) {
                 $rpcCarrier = $rpcContext->get('tracer.carrier');
-                if (! empty($rpcCarrier)) {
+                if (!empty($rpcCarrier)) {
                     $carrier = $rpcCarrier;
                 }
             }
@@ -63,7 +59,7 @@ trait SpanStarter
             return $root;
         }
         $option['child_of'] = $root->getContext();
-        $child = $this->tracer->startSpan($name, $option);
+        $child              = $this->tracer->startSpan($name, $option);
         $child->setTag(SPAN_KIND, $kind);
         return $child;
     }
