@@ -9,6 +9,7 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Hyperf\Tracer\Listener;
 
 use Hyperf\Database\Events\QueryExecuted;
@@ -20,8 +21,7 @@ use Hyperf\Utils\Arr;
 use Hyperf\Utils\Str;
 use OpenTracing\Tracer;
 
-class DbQueryExecutedListener implements ListenerInterface
-{
+class DbQueryExecutedListener implements ListenerInterface {
     use SpanStarter;
 
     /**
@@ -39,41 +39,38 @@ class DbQueryExecutedListener implements ListenerInterface
      */
     private $spanTagManager;
 
-    public function __construct(Tracer $tracer, SwitchManager $switchManager, SpanTagManager $spanTagManager)
-    {
-        $this->tracer = $tracer;
-        $this->switchManager = $switchManager;
+    public function __construct(Tracer $tracer, SwitchManager $switchManager, SpanTagManager $spanTagManager) {
+        $this->tracer         = $tracer;
+        $this->switchManager  = $switchManager;
         $this->spanTagManager = $spanTagManager;
     }
 
-    public function listen(): array
-    {
+    public function listen(): array {
         return [
             QueryExecuted::class,
         ];
     }
 
     /**
-     * @param QueryExecuted $event
+     * @param object $event
      */
-    public function process(object $event)
-    {
+    public function process(object $event) {
         if ($this->switchManager->isEnable('db') === false) {
             return;
         }
         $sql = $event->sql;
-        if (! Arr::isAssoc($event->bindings)) {
-            foreach ($event->bindings as $key => $value) {
+        if (!Arr::isAssoc($event->bindings)) {
+            foreach ($event->bindings as $value) {
                 $sql = Str::replaceFirst('?', "'{$value}'", $sql);
             }
         }
-
         $endTime = microtime(true);
-        $span = $this->startSpan($this->spanTagManager->get('db', 'db.query'), [
-            'start_time' => (int) (($endTime - $event->time / 1000) * 1000 * 1000),
+        $span    = $this->startSpan("db.query", [
+            'start_time' => (int)(($endTime - $event->time / 1000) * 1000 * 1000),
         ]);
-        $span->setTag($this->spanTagManager->get('db', 'db.statement'), $sql);
-        $span->setTag($this->spanTagManager->get('db', 'db.query_time'), $event->time . ' ms');
-        $span->finish((int) ($endTime * 1000 * 1000));
+        $this->record("db", [], $span);
+        $span->setTag("db.statement", $sql);
+        $span->setTag("db.query_time", $event->time . ' ms');
+        $span->finish((int)($endTime * 1000 * 1000));
     }
 }
